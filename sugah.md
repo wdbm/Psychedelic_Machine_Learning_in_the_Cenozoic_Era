@@ -4,6 +4,7 @@ Hey friendo! If any of this has been useful to you, send me a teensy tip via Bit
 
 Will
 
+
 wbm@protonmail.ch
 
 ![](https://raw.githubusercontent.com/wdbm/Psychedelic_Machine_Learning_in_the_Cenozoic_Era/master/media/Bitcoin.png)
