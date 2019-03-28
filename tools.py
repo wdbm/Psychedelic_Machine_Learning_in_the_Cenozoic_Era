@@ -39,7 +39,8 @@ class SequenceFrame(Loggable):
                  reflection_steps=1,
                  lookahead_steps=0,
                  step_window=1,
-                 time_suffix='t'):
+                 time_suffix='t',
+                 t0_past=False):
         self.df = df
         self.forecast_vars = forecast_vars
         self.reflection_vars = reflection_vars
@@ -49,6 +50,7 @@ class SequenceFrame(Loggable):
                                       reflection_steps,
                                       lookahead_steps)
         self.step_window = 1
+        self.t0_past = t0_past
 
     @property
     def forecast_vars(self):
@@ -111,13 +113,21 @@ class SequenceFrame(Loggable):
 
     @property
     def reflected_columns(self):
-        return [self.var_at_timestep(v, -t) for v in self.reflection_vars
-                for t in range(1, self.reflection_steps+1)]
+        if self.t0_past:
+            return [self.var_at_timestep(v, -t) for v in self.reflection_vars
+                    for t in range(0, self.reflection_steps)]
+        else:
+            return [self.var_at_timestep(v, -t) for v in self.reflection_vars
+                    for t in range(1, self.reflection_steps+1)]
 
     @property
     def forecasted_columns(self):
-        return [self.var_at_timestep(v, t) for v in self.forecast_vars
-                for t in range(self.forecast_steps)]
+        if self.t0_past:
+            return [self.var_at_timestep(v, t) for v in self.forecast_vars
+                    for t in range(1, self.forecast_steps+1)]
+        else:
+            return [self.var_at_timestep(v, t) for v in self.forecast_vars
+                    for t in range(0, self.forecast_steps)]
 
     @property
     def lookahead_columns(self):
@@ -183,19 +193,19 @@ class SequenceFrame(Loggable):
         """
         n_vars = self.df.shape[1]
         cols, names = list(), list()
-        # input sequence (t-n, ... t-1)
-        for i in (-x for x in range(self.reflection_steps, 0, -1)):
-            cols.append(self.df.shift(i))
-            names += [self.var_at_timestep(v, i) for v in self.df.columns]
-        # forecast sequence (t, t+1, ... t+n)
-        for i in range(0, self.forecast_steps):
+        if self.t0_past:
+            rnge = range(-self.reflection_steps+1, self.forecast_steps+1)
+        else:
+            rnge = range(-self.reflection_steps, self.forecast_steps)
+        for i in (x for x in rnge):
             cols.append(self.df.shift(-i))
             names += [self.var_at_timestep(v, i) for v in self.df.columns]
         # put it all together
         agg = pd.concat(cols, axis=1)
         agg.columns = names
         # drop rows with NaN values
-        if True:#dropnan:
+        if dropnan:
+            #print("DROP")
             agg.dropna(inplace=True)
         self.shifted_df = agg
         return agg
@@ -224,40 +234,43 @@ class SequenceFrame(Loggable):
                              "as this is longer than the sequence length!")
         self._step_window = value
 
-    def reshaped_LSTM_values(self):
-        """ convert 2D dataframe to 3D numpy array of requested dimensions
-            samples * refl_sequence_length * variables
-
-
-        """
+    def split_sequence_data(self, dropnan=True):
         # first, get the rows which will be converted into each sample
         # with a given sequence length based on the step window. step window of
         # 1 implies maximum training data usage.
-        _df = self.frame_shift(self.df)
+        _df = self.frame_shift(dropnan=dropnan)
         n_samples_total = len(_df)
         row_inds_to_use = [i for i in range(0, n_samples_total, self.step_window)]
         n_samples = len(row_inds_to_use)
         _df = _df.iloc[row_inds_to_use]
         # from each row(<=>sample), extract the sequences of variables to be forecast
         # these are the outputs
-        forecasted_variables = _df[[c for c in _df.columns if c in self.forecasted_columns]]
+        forecasted_data = _df[[c for c in _df.columns if c in self.forecasted_columns]]
         # and lookahead values which will be included as distinct inputs in each past
         # sequence entry
-        lookahead_variables = _df[[c for c in _df.columns if c in self.lookahead_columns]]
+        #lookahead_data = _df[[c for c in _df.columns if c in self.lookahead_columns]]
         # finally the reflected sequences
-        reflected_sequences = _df[[c for c in _df.columns if c in self.reflected_columns]]
+        reflected_data = _df[[c for c in _df.columns if c in self.reflected_columns]]
+        return forecasted_data, reflected_data
 
+    def reshaped_LSTM_values(self):
+        """ convert 2D dataframe to 3D numpy array of requested dimensions
+            samples * refl_sequence_length * variables
+
+
+        """
+
+        forecasted_data, reflected_data = self.split_sequence_data()
         # split the reflected sequences according to the number of timesteps in each
         # (i.e. there should be n_vars * n_steps columns, which we split into a 2d-array)
         # of the shape (n_steps, n_vars). these were appended in order of timesteps
         # so we can just go ahead and reshape...
-        input_vals = reflected_sequences.values.reshape(
-            (n_samples, self.reflection_steps , len(self.reflection_vars))
+        input_vals = reflected_data.values.reshape(
+            (reflected_data.shape[0], self.reflection_steps , len(self.reflection_vars))
             )
         # now splice in the lookahead variables
         # TODO
-        # input_vals = ...
-        output_vals = forecasted_variables.values
+        output_vals = forecasted_data.values
         return input_vals, output_vals
 
 def plot_history(history):
