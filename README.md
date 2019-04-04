@@ -7,5 +7,7 @@
 - [TensorFlow introduction](https://github.com/wdbm/Psychedelic_Machine_Learning_in_the_Cenozoic_Era/blob/master/TensorFlow_introduction.ipynb)
 - [TensorBoard](https://github.com/wdbm/Psychedelic_Machine_Learning_in_the_Cenozoic_Era/blob/master/TensorBoard.ipynb)
 - [Keras introduction](https://github.com/wdbm/Psychedelic_Machine_Learning_in_the_Cenozoic_Era/blob/master/Keras_introduction.ipynb)
+- [Keras 2D convolutional neural network on MNIST dataset](https://github.com/wdbm/Psychedelic_Machine_Learning_in_the_Cenozoic_Era/blob/master/Keras_convolutional_MNIST.ipynb)
+- [Keras 1D convolutional neural network on iris dataset](https://github.com/wdbm/Psychedelic_Machine_Learning_in_the_Cenozoic_Era/blob/master/Keras_convolutional_iris.ipynb)
 - [decision trees](https://github.com/wdbm/Psychedelic_Machine_Learning_in_the_Cenozoic_Era/blob/master/decision_trees.ipynb)
 - [focal loss](https://github.com/wdbm/Psychedelic_Machine_Learning_in_the_Cenozoic_Era/blob/master/focal_loss.ipynb)
