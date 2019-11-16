@@ -2,6 +2,7 @@
 
 **FYI: under construction**
 
+- [setup](https://github.com/wdbm/Psychedelic_Machine_Learning_in_the_Cenozoic_Era/blob/master/setup.md)
 - [machine learning introduction](https://github.com/wdbm/Psychedelic_Machine_Learning_in_the_Cenozoic_Era/blob/master/machine_learning_introduction.ipynb)
 - [dimensionality reduction](https://github.com/wdbm/Psychedelic_Machine_Learning_in_the_Cenozoic_Era/blob/master/dimensionality_reduction.ipynb)
 - [TensorFlow introduction](https://github.com/wdbm/Psychedelic_Machine_Learning_in_the_Cenozoic_Era/blob/master/TensorFlow_introduction.ipynb)
