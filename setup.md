@@ -290,6 +290,10 @@ sudo pip3.6 install                              \
     --upgrade
 ```
 
+```Bash
+sudo pip3.6 install psychedelic
+```
+
 # test Tensorflow
 
 A check for the detection of GPU devices can be done in the following way:
