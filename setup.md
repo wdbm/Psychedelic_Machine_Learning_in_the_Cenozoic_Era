@@ -1,4 +1,4 @@
-# setup 2019-11-13
+# setup
 
 The setup generally assumes Ubuntu 18.04 LTS and an Nvidia 1070 GPU with the P507 reference hardware.
 
