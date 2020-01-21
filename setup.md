@@ -29,7 +29,9 @@ UEFI Boot is enabled by default. Disable it.
 
 - BIOS > Boot > UEFI Boot
 
-Install Ubuntu. Following installation, install and engage Nvidia driver 384.130.
+Install Ubuntu. Following installation, install and engage an appropriate Nvidia driver version and then reboot.
+
+- [CUDA/Nvidia driver version compatibilities](https://docs.nvidia.com/deploy/cuda-compatibility)
 
 ```Bash
 software-properties-gtk
@@ -45,7 +47,19 @@ NVRM version: NVIDIA UNIX x86_64 Kernel Module  384.130  Wed Mar 21 03:37:26 PDT
 GCC version:  gcc version 5.5.0 20171010 (Ubuntu 5.5.0-12ubuntu1~16.04)
 ```
 
-## install CUDA 9.0
+A check can be made to ensure the driver is working:
+
+```Bash
+sudo lshw -c display
+```
+
+A search can be made of Nvidia driver versions available:
+
+```Bash
+apt-cache search nvidia-driver
+```
+
+## install CUDA
 
 The Nvidia Compute Unified Device Architecture (CUDA) is a parallel programming architecture.
 
@@ -66,7 +80,17 @@ sudo apt install cuda-9.0
 #sudo apt install nvidia-cuda-toolkit
 ```
 
-This should install CUDA at directory `/usr/local/cuda-9.0` (and at `/usr/local/cuda`). Include directory `/usr/local/cuda/bin` in the `PATH` environment variable.
+```Bash
+wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64/cuda-ubuntu1604.pin
+sudo mv cuda-ubuntu1604.pin /etc/apt/preferences.d/cuda-repository-pin-600
+wget http://developer.download.nvidia.com/compute/cuda/10.2/Prod/local_installers/cuda-repo-ubuntu1604-10-2-local-10.2.89-440.33.01_1.0-1_amd64.deb
+sudo dpkg -i cuda-repo-ubuntu1604-10-2-local-10.2.89-440.33.01_1.0-1_amd64.deb
+sudo apt-key add /var/cuda-repo-10-2-local-10.2.89-440.33.01/7fa2af80.pub
+sudo apt update
+sudo apt install cuda
+```
+
+This should install CUDA at directory a directory like `/usr/local/cuda-9.0` (and at `/usr/local/cuda`). Include directory `/usr/local/cuda/bin` in the `PATH` environment variable.
 
 ```Bash
 export PATH=/usr/local/cuda/bin${PATH:+:${PATH}}
@@ -99,6 +123,10 @@ sudo dpkg -i libcudnn7-dev_7.6.5.32-1+cuda9.0_amd64.deb
 
 ## install TensorFlow, Keras and other Python infrastructure
 
+This can be done via pip (such that the installation is across the system, for example) or in a localised Conda installation.
+
+### pip
+
 ```Bash
 sudo pip3.6 install                              \
     git+https://github.com/raghakot/keras-vis.git\
@@ -115,9 +143,26 @@ sudo pip3.6 install                              \
     scipy                                        \
     seaborn                                      \
     talos                                        \
-    tensorflow-gpu==1.15                         \
+    tensorflow-gpu==                             \
     tqdm                                         \
     --upgrade
+```
+
+### Conda
+
+```Bash
+wget https://repo.anaconda.com/archive/Anaconda3-2019.10-Linux-x86_64.sh
+chmod 755 Anaconda3-2019.10-Linux-x86_64.sh
+./Anaconda3-2019.10-Linux-x86_64.sh
+rm Anaconda3-2019.10-Linux-x86_64.sh
+source ~/anaconda3/bin/activate
+
+conda update --name base -c defaults conda
+conda create --name bardo python=3.7
+conda activate bardo
+conda install tensorflow-gpu
+pip install keras pandas
+python
 ```
 
 ### test Tensorflow and GPU
@@ -127,6 +172,13 @@ A check for the detection of GPU devices can be done in the following way:
 ```Python
 from tensorflow.python.client import device_lib
 print(device_lib.list_local_devices())
+```
+
+A check for the detection of GPU devices can also be done in the following way:
+
+```Python
+import tensorflow as tf
+tf.test.is_gpu_available()
 ```
 
 A test of TensorFlow can be done in the following way:
