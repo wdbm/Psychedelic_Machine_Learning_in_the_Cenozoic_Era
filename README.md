@@ -1,6 +1,6 @@
 ![](https://raw.githubusercontent.com/wdbm/Psychedelic_Machine_Learning_in_the_Cenozoic_Era/master/media/Psychedelic_Machine_Learning_in_the_Cenozoic_Era.gif)
 
-**FYI: under construction (i.e. this documentation is under construction, incomplete etc.**
+**FYI: under construction (i.e. this documentation is under construction, incomplete etc.)**
 
 - [setup](https://github.com/wdbm/Psychedelic_Machine_Learning_in_the_Cenozoic_Era/blob/master/setup.md)
 - [machine learning introduction](https://github.com/wdbm/Psychedelic_Machine_Learning_in_the_Cenozoic_Era/blob/master/machine_learning_introduction.ipynb)
