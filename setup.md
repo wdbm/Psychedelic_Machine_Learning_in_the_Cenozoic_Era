@@ -1,37 +1,37 @@
-# setup 2022-11-07
+# setup 2024-03-25
 
-The setup generally assumes Ubuntu 22.04 LTS and an Nvidia 1070 GPU with the P507 reference hardware.
+The setup assumes Ubuntu 22.04 LTS and an Nvidia 1070 GPU with the P507 reference hardware.
 
 - model:
     - Schenker XMG P507 (2017)
     - SKU: XMG-P507-KBL
-- GPU
+- GPU:
     - NVIDIA GeForce GTX 1070 8GB GDDR5 with G-SYNC
     - SKU: GPU-GTX-1070-P507-GSYNC
-- CPU
+- CPU:
     - Intel Core i7-7820HK, quad Core, 8 threads, 2.90 -- 3.90 GHz, 8 MB, 45 W
     - SKU: KCI-7820HK-P507
 - RAM:
     - 32GB (2 x 16384) SO-DIMM DDR4 RAM 2133 MHz Samsung
     - SKU: KR4-2x16GB-2133-SAMSUNG
-- HD
+- HD:
     - 512GB m.2 SSD Samsung SM961-NVMe via PCI-Express x4
     - SKU: APHDD-SM961-NVME-M2-512
+- boot keys:
+    - F2: access BIOS
+    - F11: access USB boot
 
-## boot keys
+## the infrastructure
 
-- F2: access BIOS
-- F11: access USB boot
+The Nvidia Compute Unified Device Architecture (CUDA) is a parallel programming architecture. It acts as an API to communicate with the GPU. cuDNN is a library for deep learning using CUDA. It is critical to ensure that compatible versions of the Nvidia driver, CUDA, cuDNN, Python, pip and TensorFlow are used.
 
-## install Ubuntu and Nvidia graphics drivers
+## caveat
 
-UEFI Boot is enabled by default. Disable it.
+It can be challenging to ensure that the various dependencies are sufficiently compatible to result in a working installation. It remains a common occurrence to find that even official TensorFlow installation instructions result in broken installations. In order to avoid confusion and wasted time, only basic setup documentation is maintained here and only on a best-effort basis, while old setup documentation has been removed (and is accessible in past versions of the repository). The author urges users to contact the relevant system developers if there are any installation errors as this is beyond the scope of the author.
 
-- BIOS > Boot > UEFI Boot
+## install basic infrastructure
 
-Install Ubuntu. There should be the option on installation to install an Nvidia driver. Following installation, ensure an appropriate Nvidia driver version is installed and then reboot.
-
-- [CUDA/Nvidia driver version compatibilities](https://docs.nvidia.com/deploy/cuda-compatibility)
+Ensure an appropriate Nvidia driver version is installed.
 
 ```Bash
 software-properties-gtk
@@ -39,855 +39,153 @@ software-properties-gtk
 
 - Software & Updates > Additional Drivers
 
-Verify the driver version.
+Reboot and then verify the driver version.
 
 ```Bash
 $ cat /proc/driver/nvidia/version
-NVRM version: NVIDIA UNIX x86_64 Kernel Module  515.65.01  Wed Jul 20 14:00:58 UTC 2022
-GCC version:
+NVRM version: NVIDIA UNIX x86_64 Kernel Module  545.29.06  Thu Nov 16 01:59:08 UTC 2023
+GCC version:  gcc version 12.3.0 (Ubuntu 12.3.0-1ubuntu1~22.04)
 ```
 
-A check can be made to ensure the driver is working:
+A check can be made to ensure the driver is available, which should result in a listing of display hardware featuring the Nvidia hardware:
 
 ```Bash
-sudo lshw -c display
+$ sudo lshw -c display
+  *-display                 
+       description: VGA compatible controller
+       product: GP104BM [GeForce GTX 1070 Mobile]
+       vendor: NVIDIA Corporation
+       physical id: 0
+       bus info: pci@0000:01:00.0
+       version: a1
+       width: 64 bits
+       clock: 33MHz
+       capabilities: pm msi pciexpress vga_controller bus_master cap_list rom
+       configuration: driver=nvidia latency=0
+       resources: irq:144 memory:db000000-dbffffff memory:90000000-9fffffff memory:a0000000-a1ffffff ioport:e000(size=128) memory:dc000000-dc07ffff
+  *-display
+       description: VGA compatible controller
+       product: HD Graphics 630
+       vendor: Intel Corporation
+       physical id: 2
+       bus info: pci@0000:00:02.0
+       logical name: /dev/fb0
+       version: 04
+       width: 64 bits
+       clock: 33MHz
+       capabilities: pciexpress msi pm vga_controller bus_master cap_list rom fb
+       configuration: depth=32 driver=i915 latency=0 mode=1920x1080 resolution=1920,1080 visual=truecolor xres=1920 yres=1080
+       resources: iomemory:2f0-2ef irq:140 memory:2ffe000000-2ffeffffff memory:80000000-8fffffff ioport:f000(size=64) memory:c0000-dffff
 ```
 
-A search can be made of Nvidia driver versions available:
+Install GCC, nvtop, Miniconda, update pip, install CUDA, cuDNN and TensorFlow, and then test that TensorFlow can access the GPU.
 
 ```Bash
-apt-cache search nvidia-driver
-```
-
-## install CUDA
-
-The Nvidia Compute Unified Device Architecture (CUDA) is a parallel programming architecture.
-
-
-The CUDA Driver requires that the kernel headers and development packages for the running version of the kernel be installed at the time of the driver installation, as well whenever the driver is rebuilt. For example, if your system is running kernel version 3.17.4-301, the 3.17.4-301 kernel headers and development packages must also be installed. 
-
-The kernel headers and development packages for the currently running kernel can be installed with:
-
-sudo apt-get install linux-headers-$(uname -r)
-
-```Bash
-wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-ubuntu2204.pin
-sudo mv cuda-ubuntu2204.pin /etc/apt/preferences.d/cuda-repository-pin-600
-wget https://developer.download.nvidia.com/compute/cuda/11.8.0/local_installers/cuda-repo-ubuntu2204-11-8-local_11.8.0-520.61.05-1_amd64.deb
-sudo dpkg -i cuda-repo-ubuntu2204-11-8-local_11.8.0-520.61.05-1_amd64.deb
-sudo cp /var/cuda-repo-ubuntu2204-11-8-local/cuda-*-keyring.gpg /usr/share/keyrings/
-sudo apt update
-time sudo apt -y install cuda
-```
-
-This should install CUDA at directories like `/usr/local/cuda-11.0`, `/usr/local/cuda-11.8` and `/usr/local/cuda`. Include directory `/usr/local/cuda/bin` in the `PATH` environment variable.
-
-```Bash
-export PATH=/usr/local/cuda/bin${PATH:+:${PATH}}
-```
-
-This can be added to `~/.bashrc`:
-
-```Bash
-IFS= read -d '' text << "EOF"
-export PATH=/usr/local/cuda/bin${PATH:+:${PATH}}
-EOF
-echo "${text}" >> ~/.bashrc
-```
-
-Test the installation.
-
-```Bash
-$ nvcc --version
-nvcc: NVIDIA (R) Cuda compiler driver
-Copyright (c) 2005-2022 NVIDIA Corporation
-Built on Wed_Sep_21_10:33:58_PDT_2022
-Cuda compilation tools, release 11.8, V11.8.89
-Build cuda_11.8.r11.8/compiler.31833905_0
+sudo apt install gcc nvtop
 ```
 
 ```Bash
-export LD_LIBRARY_PATH=/usr/local/cuda-11/lib64/stubs/:$LD_LIBRARY_PATH
-sudo chown -R $USER:$USER /usr/local/cuda-11/
-sudo chmod -R 777 /usr/local/cuda-11/
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+chmod 755 Miniconda3-latest-Linux-x86_64.sh
+./Miniconda3-latest-Linux-x86_64.sh
+#rm Miniconda3-latest-Linux-x86_64.sh
 ```
-
----
-
-
-wget https://repo.anaconda.com/archive/Anaconda3-2022.10-Linux-x86_64.sh
-chmod 755 Anaconda3-2022.10-Linux-x86_64.sh
-./Anaconda3-2022.10-Linux-x86_64.sh
-rm Anaconda3-2022.10-Linux-x86_64.sh
-source ~/anaconda3/bin/activate
-
-conda update --name base -c defaults conda
-conda create --name bardo python=3.10
-conda activate bardo
-conda install tensorflow
-pip install keras
-python
-
-
-#Create virtual environment 
-conda create --name tf_gpu
-#Activate environment 
-conda activate tf_gpu
-#Install Python 
-conda install python==3.9
-#Install CUDA
-conda install -c anaconda cudatoolkit=11.2
-#Install cuDNN
-conda install cudnn=8.1
-#Install Tensorflow-gpu =~2.8
-pip install tensorflow==2.8
-
----
-
-
-
-## install cuDNN
-
-The NVIDIA CUDA Deep Neural Network library (cuDNN) is a library for machine learning. Register for a developer account. Install the cuDNN Library for Linux for the appropriate version of CUDA. It is downloaded from the Nvidia website (requiring registration).
-
-Run the following and install the GPG key as requested:
 
 ```Bash
-sudo dpkg -i cudnn-local-repo-ubuntu2204-8.6.0.163_1.0-1_amd64.deb
+source ~/miniconda3/bin/activate
 ```
-
-## install TensorFlow and Keras
 
 ```Bash
-sudo python3 -m pip install tensorflow keras --upgrade
+conda create --name tf python=3.9
 ```
 
-### test Tensorflow and GPU
+```Bash
+conda activate tf
+```
 
-A check for the detection of GPU devices can be done in the following way:
+```Bash
+conda install -c conda-forge cudatoolkit=11.8.0
+pip install --upgrade pip
+pip install nvidia-cudnn-cu11==8.6.0.163
+#pip install tensorflow==2.13.*
+pip install tensorflow==2.10
+```
+
+```Bash
+python3.9 -c "import tensorflow as tf; print(tf.config.list_physical_devices('GPU'))"
+```
+
+It is promising if the GPU is detected, but this check does not confirm that the installation has resulted in a working installation. It is prudent to test some Keras functionality to ensure that the GPU is accessible and is being used for TensorFlow calculations. This can be done by opening two terminals. In one terminal, set `nvtop` running. In the other terminal, set a script like the following running:
 
 ```Python
-from tensorflow.python.client import device_lib
-print(device_lib.list_local_devices())
-```
-
-A check for the detection of GPU devices can also be done in the following way:
-
-```Python
+import numpy as np
 import tensorflow as tf
-#tf.test.is_gpu_available() # deprecated
-tf.config.list_physical_devices('GPU')
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.optimizers import Adam
+
+print(tf.config.list_physical_devices('GPU'))
+
+# Generate nonsense data
+num_samples = 100000  # Large number of samples for intensive computation
+input_dim = 1000      # High dimensionality for each input sample
+output_dim = 10       # Dimensionality of output data
+X = np.random.random((num_samples, input_dim))
+y = np.random.random((num_samples, output_dim))
+
+# Define a simple sequential model
+model = Sequential([
+    Dense(512, activation='relu', input_shape=(input_dim,)),
+    Dense(256, activation='relu'),
+    Dense(output_dim, activation='softmax')
+])
+
+# Compile the model
+model.compile(optimizer=Adam(), loss='categorical_crossentropy')
+
+# Train the model on the data
+model.fit(X, y, epochs=10, batch_size=256)  # Single epoch, large batch size
+
+# Save the model
+model.save('model.h5')
 ```
 
-A test of TensorFlow can be done in the following way:
-
-```Python
-import tensorflow as tf
-hello = tf.constant('Hello, TensorFlow!')
-sess = tf.Session()
-sess.run(hello)
-
-a = tf.constant(10)
-b = tf.constant(32)
-sess.run(a + b)
-sess.close()
-```
-
-## install TensorFlow, Keras and other Python infrastructure
-
-This can be done via pip (such that the installation is across the system, for example) or in a localised Conda installation.
-
-### pip
+Hopefully the installation is functional. The environment can be accessed again using Miniconda:
 
 ```Bash
-sudo pip3.6 install                              \
-    graphviz                                     \
-    jupyter                                      \
-    keras                                        \
-    keras_tqdm                                   \
-    livelossplot==0.4.1                          \
-    matplotlib                                   \
-    numpy                                        \
-    pandas                                       \
-    pydot                                        \
-    scikit-learn                                 \
-    scipy                                        \
-    seaborn                                      \
-    talos                                        \
-    tensorflow-gpu==                             \
-    tqdm                                         \
-    --upgrade
+source ~/miniconda3/bin/activate
+conda activate tf
 ```
 
-    git+https://github.com/raghakot/keras-vis.git\
+## install other infrastructure
 
-### Conda
-
-```Bash
-wget https://repo.anaconda.com/archive/Anaconda3-2019.10-Linux-x86_64.sh
-chmod 755 Anaconda3-2019.10-Linux-x86_64.sh
-./Anaconda3-2019.10-Linux-x86_64.sh
-rm Anaconda3-2019.10-Linux-x86_64.sh
-source ~/anaconda3/bin/activate
-
-conda update --name base -c defaults conda
-conda create --name bardo python=3.7
-conda activate bardo
-conda install tensorflow-gpu
-pip install keras pandas
-python
-```
-
-
-
----
-
-# setup 2020-01-21
-
-The setup generally assumes Ubuntu 18.04 LTS and an Nvidia 1070 GPU with the P507 reference hardware.
-
-- model:
-    - Schenker XMG P507 (2017)
-    - SKU: XMG-P507-KBL
-- GPU
-    - NVIDIA GeForce GTX 1070 8GB GDDR5 with G-SYNC
-    - SKU: GPU-GTX-1070-P507-GSYNC
-- CPU
-    - Intel Core i7-7820HK, quad Core, 8 threads, 2.90 -- 3.90 GHz, 8 MB, 45 W
-    - SKU: KCI-7820HK-P507
-- RAM:
-    - 32GB (2 x 16384) SO-DIMM DDR4 RAM 2133 MHz Samsung
-    - SKU: KR4-2x16GB-2133-SAMSUNG
-- HD
-    - 512GB m.2 SSD Samsung SM961-NVMe via PCI-Express x4
-    - SKU: APHDD-SM961-NVME-M2-512
-
-## boot keys
-
-- F2: access BIOS
-- F11: access USB boot
-
-## install Ubuntu and Nvidia graphics drivers
-
-UEFI Boot is enabled by default. Disable it.
-
-- BIOS > Boot > UEFI Boot
-
-Install Ubuntu. Following installation, install and engage an appropriate Nvidia driver version and then reboot.
-
-- [CUDA/Nvidia driver version compatibilities](https://docs.nvidia.com/deploy/cuda-compatibility)
+Other, perhaps optional, infrastructure can be installed.
 
 ```Bash
-software-properties-gtk
-```
-
-- Software & Updates > Additional Drivers
-
-Verify the driver version.
-
-```Bash
-$ cat /proc/driver/nvidia/version
-NVRM version: NVIDIA UNIX x86_64 Kernel Module  384.130  Wed Mar 21 03:37:26 PDT 2018
-GCC version:  gcc version 5.5.0 20171010 (Ubuntu 5.5.0-12ubuntu1~16.04)
-```
-
-A check can be made to ensure the driver is working:
-
-```Bash
-sudo lshw -c display
-```
-
-A search can be made of Nvidia driver versions available:
-
-```Bash
-apt-cache search nvidia-driver
-```
-
-## install CUDA
-
-The Nvidia Compute Unified Device Architecture (CUDA) is a parallel programming architecture.
-
-```Bash
-wget https://developer.nvidia.com/compute/cuda/9.0/Prod/local_installers/cuda-repo-ubuntu1604-9-0-local_9.0.176-1_amd64-deb
-wget https://developer.nvidia.com/compute/cuda/9.0/Prod/patches/1/cuda-repo-ubuntu1604-9-0-local-cublas-performance-update_1.0-1_amd64-deb
-wget https://developer.nvidia.com/compute/cuda/9.0/Prod/patches/2/cuda-repo-ubuntu1604-9-0-local-cublas-performance-update-2_1.0-1_amd64-deb
-wget https://developer.nvidia.com/compute/cuda/9.0/Prod/patches/3/cuda-repo-ubuntu1604-9-0-local-cublas-performance-update-3_1.0-1_amd64-deb
-wget https://developer.nvidia.com/compute/cuda/9.0/Prod/patches/4/cuda-repo-ubuntu1604-9-0-176-local-patch-4_1.0-1_amd64-deb
-
-sudo dpkg -i cuda-repo-ubuntu1604-9-0-local_9.0.176-1_amd64-deb
-sudo dpkg -i cuda-repo-ubuntu1604-9-0-local-cublas-performance-update_1.0-1_amd64-deb
-sudo dpkg -i cuda-repo-ubuntu1604-9-0-local-cublas-performance-update-2_1.0-1_amd64-deb
-sudo dpkg -i cuda-repo-ubuntu1604-9-0-local-cublas-performance-update-3_1.0-1_amd64-deb
-sudo dpkg -i cuda-repo-ubuntu1604-9-0-176-local-patch-4_1.0-1_amd64-deb
-sudo apt update
-sudo apt install cuda-9.0
-#sudo apt install nvidia-cuda-toolkit
+pip install     \
+    graphviz    \
+    jupyter     \
+    keras_tqdm  \
+    livelossplot\
+    matplotlib  \
+    numpy       \
+    pandas      \
+    pydot       \
+    scikit-learn\
+    scipy       \
+    seaborn     \
+    tqdm
 ```
 
 ```Bash
-wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64/cuda-ubuntu1604.pin
-sudo mv cuda-ubuntu1604.pin /etc/apt/preferences.d/cuda-repository-pin-600
-wget http://developer.download.nvidia.com/compute/cuda/10.2/Prod/local_installers/cuda-repo-ubuntu1604-10-2-local-10.2.89-440.33.01_1.0-1_amd64.deb
-sudo dpkg -i cuda-repo-ubuntu1604-10-2-local-10.2.89-440.33.01_1.0-1_amd64.deb
-sudo apt-key add /var/cuda-repo-10-2-local-10.2.89-440.33.01/7fa2af80.pub
-sudo apt update
-sudo apt install cuda
-```
-
-This should install CUDA at directory a directory like `/usr/local/cuda-9.0` (and at `/usr/local/cuda`). Include directory `/usr/local/cuda/bin` in the `PATH` environment variable.
-
-```Bash
-export PATH=/usr/local/cuda/bin${PATH:+:${PATH}}
-```
-
-Test the installation.
-
-```Bash
-$ nvcc --version
-nvcc: NVIDIA (R) Cuda compiler driver
-Copyright (c) 2005-2017 NVIDIA Corporation
-Built on Fri_Sep__1_21:08:03_CDT_2017
-Cuda compilation tools, release 9.0, V9.0.176
-```
-
-```Bash
-export LD_LIBRARY_PATH=/usr/local/cuda-9.0/lib64/stubs/:$LD_LIBRARY_PATH
-sudo chown -R $USER:$USER /usr/local/cuda-9.0/
-sudo chmod -R 777 /usr/local/cuda-9.0/
-```
-
-## install cuDNN
-
-The NVIDIA CUDA Deep Neural Network library (cuDNN) is a library for machine learning. Register for a developer account. Install the cuDNN Library for Linux for CUDA 9.0. It is downloaded from the Nvidia website (requiring registration).
-
-```Bash
-sudo dpkg -i libcudnn7_7.6.5.32-1+cuda9.0_amd64.deb
-sudo dpkg -i libcudnn7-dev_7.6.5.32-1+cuda9.0_amd64.deb
-```
-
-## install TensorFlow, Keras and other Python infrastructure
-
-This can be done via pip (such that the installation is across the system, for example) or in a localised Conda installation.
-
-### pip
-
-```Bash
-sudo pip3.6 install                              \
-    git+https://github.com/raghakot/keras-vis.git\
-    graphviz                                     \
-    jupyter                                      \
-    keras                                        \
-    keras_tqdm                                   \
-    livelossplot==0.4.1                          \
-    matplotlib                                   \
-    numpy                                        \
-    pandas                                       \
-    pydot                                        \
-    scikit-learn                                 \
-    scipy                                        \
-    seaborn                                      \
-    talos                                        \
-    tensorflow-gpu==                             \
-    tqdm                                         \
-    --upgrade
-```
-
-### Conda
-
-```Bash
-wget https://repo.anaconda.com/archive/Anaconda3-2019.10-Linux-x86_64.sh
-chmod 755 Anaconda3-2019.10-Linux-x86_64.sh
-./Anaconda3-2019.10-Linux-x86_64.sh
-rm Anaconda3-2019.10-Linux-x86_64.sh
-source ~/anaconda3/bin/activate
-
-conda update --name base -c defaults conda
-conda create --name bardo python=3.7
-conda activate bardo
-conda install tensorflow-gpu
-pip install keras pandas
-python
-```
-
-### test Tensorflow and GPU
-
-A check for the detection of GPU devices can be done in the following way:
-
-```Python
-from tensorflow.python.client import device_lib
-print(device_lib.list_local_devices())
-```
-
-A check for the detection of GPU devices can also be done in the following way:
-
-```Python
-import tensorflow as tf
-tf.test.is_gpu_available()
-```
-
-A test of TensorFlow can be done in the following way:
-
-```Python
-import tensorflow as tf
-hello = tf.constant('Hello, TensorFlow!')
-sess = tf.Session()
-sess.run(hello)
-
-a = tf.constant(10)
-b = tf.constant(32)
-sess.run(a + b)
-sess.close()
-```
-
-## other instructions
-
-Now perhaps follow some of the old instructions.
-
----
-
-# setup 2018-09-18T1512Z
-
-The setup generally assumes Ubuntu 18.04 LTS and an Nvidia 1070 GPU.
-
-# set up reference hardware P507 
-
-- model:
-    - Schenker XMG P507 (2017)
-    - SKU: XMG-P507-KBL
-- GPU
-    - NVIDIA GeForce GTX 1070 8GB GDDR5 with G-SYNC
-    - SKU: GPU-GTX-1070-P507-GSYNC
-- CPU
-    - Intel Core i7-7820HK, quad Core, 8 threads, 2.90 -- 3.90 GHz, 8 MB, 45 W
-    - SKU: KCI-7820HK-P507
-- RAM:
-    - 32GB (2 x 16384) SO-DIMM DDR4 RAM 2133 MHz Samsung
-    - SKU: KR4-2x16GB-2133-SAMSUNG
-- HD
-    - 512GB m.2 SSD Samsung SM961-NVMe via PCI-Express x4
-    - SKU: APHDD-SM961-NVME-M2-512
-
-## boot keys
-
-- F2: access BIOS
-- F11: access USB boot
-
-## install Ubuntu and Nvidia graphics drivers
-
-UEFI Boot is enabled by default. Disable it.
-
-- BIOS > Boot > UEFI Boot
-
-Install Ubuntu. Following installation, Ubuntu boots to a flawed interface of just wallpaper without Unity. Boot to Ubuntu recovery mode and use more simple graphics to access Ubuntu and Unity. Launch a terminal and install and engage Nvidia drivers.
-
-```Bash
-sudo add-apt-repository ppa:graphics-drivers/ppa
-sudo apt update
-sudo apt install nvidia-396 nvidia-prime
-```
-
-Verify the driver version.
-
-```Bash
-$ cat /proc/driver/nvidia/version
-NVRM version: NVIDIA UNIX x86_64 Kernel Module  396.37  Tue Jun 12 13:47:27 PDT 2018
-GCC version:  gcc version 7.3.0 (Ubuntu 7.3.0-16ubuntu3)
-```
-
-## install CUDA 9.0
-
-The Nvidia Compute Unified Device Architecture (CUDA) is a parallel programming architecture.
-
-```Bash
-curl -O -L --remote-header-name https://developer.nvidia.com/compute/cuda/9.0/Prod/local_installers/cuda-repo-ubuntu1704-9-0-local_9.0.176-1_amd64-deb
-curl -O -L --remote-header-name https://developer.nvidia.com/compute/cuda/9.0/Prod/patches/1/cuda-repo-ubuntu1704-9-0-local-cublas-performance-update_1.0-1_amd64-deb
-curl -O -L --remote-header-name https://developer.nvidia.com/compute/cuda/9.0/Prod/patches/2/cuda-repo-ubuntu1704-9-0-local-cublas-performance-update-2_1.0-1_amd64-deb
-curl -O -L --remote-header-name https://developer.nvidia.com/compute/cuda/9.0/Prod/patches/3/cuda-repo-ubuntu1704-9-0-local-cublas-performance-update-3_1.0-1_amd64-deb
-curl -O -L --remote-header-name https://developer.nvidia.com/compute/cuda/9.0/Prod/patches/4/cuda-repo-ubuntu1704-9-0-176-local-patch-4_1.0-1_amd64-deb
-
-sudo dpkg -i cuda-repo-ubuntu1704-9-0-local_9.0.176-1_amd64-deb
-sudo apt update
-sudo apt install cuda-9-0
-sudo dpkg -i cuda-repo-ubuntu1704-9-0-local-cublas-performance-update_1.0-1_amd64-deb
-sudo dpkg -i cuda-repo-ubuntu1704-9-0-local-cublas-performance-update-2_1.0-1_amd64-deb
-sudo dpkg -i cuda-repo-ubuntu1704-9-0-local-cublas-performance-update-3_1.0-1_amd64-deb
-sudo dpkg -i cuda-repo-ubuntu1704-9-0-176-local-patch-4_1.0-1_amd64-deb
-```
-
-This should install CUDA at directory `/usr/local/cuda-9.0` (and at `/usr/local/cuda`). Include directory `/usr/local/cuda/bin` in the `PATH` environment variable.
-
-```Bash
-export PATH=/usr/local/cuda/bin${PATH:+:${PATH}}
-```
-
-Test the installation.
-
-```Bash
-$ nvcc --version
-nvcc: NVIDIA (R) Cuda compiler driver
-Copyright (c) 2005-2017 NVIDIA Corporation
-Built on Fri_Sep__1_21:08:03_CDT_2017
-Cuda compilation tools, release 9.0, V9.0.176
-```
-
-```Bash
-export LD_LIBRARY_PATH=/usr/local/cuda-9.0/lib64/stubs/:$LD_LIBRARY_PATH
-sudo chown -R $USER:$USER /usr/local/cuda-9.0/
-sudo chmod -R 777 /usr/local/cuda-9.0/
-```
-
-## install cuDNN
-
-The NVIDIA CUDA Deep Neural Network library (cuDNN) is a library for machine learning. Register for a developer account. Install cuDNN v7.2.1 Library for Linux for CUDA 9.0.
-
-```Bash
-tar -xvf cudnn-9.0-linux-x64-v7.2.1.38.tgz
-```
-
-The cuDNN archive contains the following:
-
-```Bash
-cuda/include/cudnn.h
-cuda/NVIDIA_SLA_cuDNN_Support.txt
-cuda/lib64/libcudnn.so
-cuda/lib64/libcudnn.so.7
-cuda/lib64/libcudnn.so.7.2.1
-cuda/lib64/libcudnn_static.a
-```
-
-Copy cuDNN to the CUDA Tookkit directory and change the file permissions.
-
-```Bash
-sudo cp cuda/include/cudnn.h /usr/local/cuda-9.0/include/
-sudo cp cuda/lib64/* /usr/local/cuda-9.0/lib64/
-sudo chmod a+r /usr/local/cuda/include/cudnn.h /usr/local/cuda-9.0/lib64/libcudnn*
-```
-
-# install TensorFlow, Keras and other Python infrastructure
-
-```Bash
-sudo pip3.6 install                              \
-    git+https://github.com/raghakot/keras-vis.git\
-    graphviz                                     \
-    jupyter                                      \
-    keras                                        \
-    keras_tqdm                                   \
-    livelossplot==0.4.1                          \
-    matplotlib                                   \
-    numpy                                        \
-    pandas                                       \
-    pydot                                        \
-    scikit-learn                                 \
-    scipy                                        \
-    seaborn                                      \
-    talos                                        \
-    tensorflow-gpu==1.15                         \
-    tqdm                                         \
-    --upgrade
-```
-
-```Bash
-sudo pip3.6 install psychedelic
-```
-
-# test Tensorflow
-
-A check for the detection of GPU devices can be done in the following way:
-
-```Python
-from tensorflow.python.client import device_lib
-print(device_lib.list_local_devices())
-```
-
-A test of TensorFlow can be done in the following way:
-
-```Python
-import tensorflow as tf
-hello = tf.constant('Hello, TensorFlow!')
-sess = tf.Session()
-sess.run(hello)
-
-a = tf.constant(10)
-b = tf.constant(32)
-sess.run(a + b)
-sess.close()
-```
-
-# other instructions
-
-Now follow some of the old instructions.
-
----
-
-# setup (old)
-
-The setup generally assumes Ubuntu and an Nvidia GPU.
-
-# set up reference hardware P507 
-
-- model:
-    - Schenker XMG P507 (2017)
-    - SKU: XMG-P507-KBL
-- GPU
-    - NVIDIA GeForce GTX 1070 8GB GDDR5 with G-SYNC
-    - SKU: GPU-GTX-1070-P507-GSYNC
-- CPU
-    - Intel Core i7-7820HK, quad Core, 8 threads, 2.90 -- 3.90 GHz, 8 MB, 45 W
-    - SKU: KCI-7820HK-P507
-- RAM:
-    - 32GB (2 x 16384) SO-DIMM DDR4 RAM 2133 MHz Samsung
-    - SKU: KR4-2x16GB-2133-SAMSUNG
-- HD
-    - 512GB m.2 SSD Samsung SM961-NVMe via PCI-Express x4
-    - SKU: APHDD-SM961-NVME-M2-512
-
-## boot keys
-
-- F2: access BIOS
-- F11: access USB boot
-
-## install Ubuntu and Nvidia graphics drivers
-
-UEFI Boot is enabled by default. Disable it.
-
-- BIOS > Boot > UEFI Boot
-
-Install Ubuntu. Following installation, Ubuntu boots to a flawed interface of just wallpaper without Unity. Boot to Ubuntu recovery mode and use more simple graphics to access Ubuntu and Unity. Launch a terminal and install and engage Nvidia drivers.
-
-```Bash
-sudo add-apt-repository ppa:graphics-drivers/ppa
-sudo apt update
-sudo apt install nvidia-384 nvidia-prime
-```
-
-Verify the driver version.
-
-```Bash
->cat /proc/driver/nvidia/version
-NVRM version: NVIDIA UNIX x86_64 Kernel Module  375.39  Tue Jan 31 20:47:00 PST 2017
-GCC version:  gcc version 6.2.0 20161018 (Ubuntu 6.2.0-7ubuntu11)
-```
-
-## install CUDA
-
-The Nvidia Compute Unified Device Architecture (CUDA) is a parallel programming architecture.
-
-```Bash
-sudo dpkg -i cuda-repo-ubuntu1604-8-0-local-ga2_8.0.61-1_amd64.deb
-sudo apt-get update
-sudo apt-get install cuda
-```
-
-This should install CUDA at directory `/usr/local/cuda-8.0`. Include directory `/usr/local/cuda-8.0/bin` in the `PATH` environment variable.
-
-```Bash
-export PATH=/usr/local/cuda-8.0/bin${PATH:+:${PATH}}
-```
-
-Test the installation.
-
-```Bash
->nvcc --version
-nvcc: NVIDIA (R) Cuda compiler driver
-Copyright (c) 2005-2016 NVIDIA Corporation
-Built on Tue_Jan_10_13:22:03_CST_2017
-Cuda compilation tools, release 8.0, V8.0.61
-```
-
-## install cuDNN
-
-The NVIDIA CUDA Deep Neural Network library (cuDNN) is a library for machine learning. Register for a developer account. Install cuDNN v5.1 Library for Linux.
-
-```Bash
-tar -xvf cudnn-8.0-linux-x64-v5.1.tgz
-```
-
-The cuDNN archive contains the following:
-
-```Bash
-cuda/include/cudnn.h
-cuda/lib64/libcudnn.so
-cuda/lib64/libcudnn.so.5
-cuda/lib64/libcudnn.so.5.1.10
-cuda/lib64/libcudnn_static.a
-```
-
-```Bash
-sudo cp cuda/include/cudnn.h /usr/local/cuda-8.0/include/
-sudo cp cuda/lib64/* /usr/local/cuda-8.0/lib64/
-```
-
-## set up GCC (2018-04-12T0135Z possibly unnecessary)
-
-Install and change to GCC 4.9 for CUDA.
-
-```Bash
-sudo apt-get install gcc-4.9 g++-4.9
-```
-
-The existing GCC and g++ links are as follows:
-
-```Bash
->ls -al /usr/bin/gcc
-lrwxrwxrwx 1 root root 5 Feb 24 15:13 /usr/bin/gcc -> gcc-6
->ls -al /usr/bin/g++
-lrwxrwxrwx 1 root root 5 Feb 24 15:13 /usr/bin/g++ -> g++-6
-```
-
-Change the symlinks for GCC and g++ to GCC 4.9.
-
-```Bash
-ln -fs /usr/bin/gcc-4.9 /usr/bin/gcc
-ln -fs /usr/bin/g++-4.9 /usr/bin/g++
-```
-
-## set up OpenCL (2017-03-08T1827Z experimental)
-
-OpenCL is included with CUDA. Create a symbolic link to the Nvidia OpenCL headers at `/usr/include`.
-
-```Bash
-sudo ln -s /usr/include/nvidia-375/CL /usr/include
-```
-
-## install CUPTI
-
-The NVIDIA CUDA Profiling Tools Interface (CUPTI) provides performance analysis tools with detailed information about how applications are using the GPUs of a system.
-
-```Bash
-sudo apt-get install libcupti-dev
-```
-
-# pip, Miniconda
-
-`pip` can install system-wide or locally. Miniconda can simplify the setup of Python, pip and other modules.
-
-To install Miniconda, follow a procedure like the following:
-
-```Bash
-wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh
-bash Miniconda2-latest-Linux-x86_64.sh
-```
-
-Following the prompts. The default install directory is `${HOME}/miniconda2` or `${HOME}/miniconda3`.
-
-# install TensorFlow
-
-Install TensorFlow.
-
-```Bash
-sudo apt-get -y install python-pip
-sudo apt-get -y install python-dev
-pip install tensorflow-gpu
-#pip install tensorflow # CPU
-```
-
-# set up ROOT 2017-04-21
-
-Install CMake.
-
-```Bash
-sudo apt-get remove cmake
-
-wget https://cmake.org/files/v3.8/cmake-3.8.0-Linux-x86_64.sh
-sudo sh cmake-3.8.0-Linux-x86_64.sh --prefix=/opt/cmake
-PATH="/opt/cmake/cmake-3.8.0-Linux-x86_64/bin:"${PATH}""
-```
-
-Install ROOT.
-
-```Bash
-wget https://raw.githubusercontent.com/wdbm/soil/master/setup.sh
-chmod 755 setup.sh
-./setup.sh
-rm setup.sh
-```
-
-# set up tmux-control
-
-```Bash
-sudo apt-get -y install cmus   \
-                        elinks \
-                        htop   \
-                        ranger \
-                        tmux
-
-pip install tmux_control
-```
-
-# set up other dependencies and abstraction (2017-03-21 upcoming)
-
-- Install [tonescale](https://github.com/wdbm/tonescale).
-
-```Bash
-sudo apt-get -y install festival    \
-                        pylint      \
-                        snakefood   \
-                        sqlite      \
-                        sqliteman   \
-                        python-nltk
-
 pip install nltk
-sudo python -m nltk.downloader all
-sudo easy_install -U gensim
-pip install gensim
-pip install sklearn
-pip install abstraction
-git clone https://github.com/wdbm/abstraction.git
+python -m nltk.downloader all # download to ~/nltk_data
 ```
-
-Create a PRAW credentials file `~/.reddit`. Its contents should have the following form:
-
-```Python
-client_id     = "xxxxxxxxxxxxxx"
-client_secret = "xxxxxxxxxxxxxxxxxxxxxxxxxxx"
-user_agent    = "xxxxxxxxxx"
-```
-
-The function `abstraction.setup()` should be run.
-
----
-
-# uninstall
-
-## uninstall TensorFlow
 
 ```Bash
-sudo pip2 uninstall tensorflow-cpu
-sudo pip3 uninstall tensorflow-cpu
-
-sudo pip2 uninstall tensorflow-gpu
-sudo pip3 uninstall tensorflow-gpu
+pip install keras-viz
 ```
-
-For TensorFlow 1.0.1 CPU, the procedure is as follows:
 
 ```Bash
-sudo pip2 uninstall tensorflow
-sudo pip3 uninstall tensorflow
+pip install psychedelic
 ```
-
-## uninstall CUPTI
-
-```Bash
-sudo apt remove libcupti-dev
-```
-
-## uninstall cuDNN and CUDA 8.0
-
-There is no need to explicitly remove cuDNN in isolation, as it is removed along with CUDA 8.0.
-
-```Bash
-sudo apt remove cuda
-sudo apt autoremove
-sudo apt remove --purge cuda
-```
-
-The `autoremove` step removes about 2 GB for CUDA 8.0. The CUDA 8.0 directory (`/usr/local/cuda-8.0/`) should be removed now.
-
-```Bash
-sudo apt remove cuda-repo-ubuntu1604-8-0-local-ga2
-sudo apt clean
-sudo apt autoclean
-```
-
-The `remove cuda-repo-ubuntu1604-8-0-local-ga2` step removes about 2 GB for CUDA 8.0.
