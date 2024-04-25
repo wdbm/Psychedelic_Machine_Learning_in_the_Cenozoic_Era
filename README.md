@@ -3,6 +3,7 @@
 **FYI: under construction (i.e. this documentation is under construction, incomplete etc.)**
 
 - [setup](https://github.com/wdbm/Psychedelic_Machine_Learning_in_the_Cenozoic_Era/blob/master/setup.md)
+- [using Jupyter remotely](https://github.com/wdbm/Psychedelic_Machine_Learning_in_the_Cenozoic_Era/blob/master/Jupyter.md)
 - [machine learning introduction](https://github.com/wdbm/Psychedelic_Machine_Learning_in_the_Cenozoic_Era/blob/master/machine_learning_introduction.ipynb)
 - [dimensionality reduction](https://github.com/wdbm/Psychedelic_Machine_Learning_in_the_Cenozoic_Era/blob/master/dimensionality_reduction.ipynb)
 - [TensorFlow introduction](https://github.com/wdbm/Psychedelic_Machine_Learning_in_the_Cenozoic_Era/blob/master/TensorFlow_introduction.ipynb)
