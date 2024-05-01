@@ -4,6 +4,8 @@
 
 The aim here is to express how to use a computer with hardware suited to machine learning (e.g. a GPU) remotely, via a server. For the purposes of this documentation, it is assumed that there is a computer with a GPU (e.g. an XMG P507), a server (e.g. www.example.org) and a local computer which is used to access, via the server, an instance of Jupyter running on the computer with the GPU, and with full access to the GPU. In this documentation, the computer with the GPU is referred to as P507, the server is referred to as the server and the local computer is referred to as X390.
 
+![](https://raw.githubusercontent.com/wdbm/Psychedelic_Machine_Learning_in_the_Cenozoic_Era/master/media/2024-04-24T2045Z.png)
+
 ## SSH setup
 
 For all of the computers involved, it may be prudent to ensure that SSH keys have been copied as appropriate, that SSH tunnels are kept alive, and that `tmux` is available:
