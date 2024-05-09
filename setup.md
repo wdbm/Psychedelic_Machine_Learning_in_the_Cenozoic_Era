@@ -163,6 +163,11 @@ conda activate tf
 Other, perhaps optional, infrastructure can be installed.
 
 ```Bash
+sudo apt install git-lfs
+git lfs install
+```
+
+```Bash
 pip install     \
     graphviz    \
     jupyter     \
