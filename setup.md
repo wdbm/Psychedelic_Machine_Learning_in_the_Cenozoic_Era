@@ -14,6 +14,7 @@ The setup assumes Ubuntu 22.04 LTS and an Nvidia 1070 GPU with the P507 referenc
 - RAM:
     - 32GB (2 x 16384) SO-DIMM DDR4 RAM 2133 MHz Samsung
     - SKU: KR4-2x16GB-2133-SAMSUNG
+    - 32 GB (1 x 32768 MB) SO-DIMM DDR4 RAM 3200 MHz Crucial (2024-05-09)
 - HD:
     - 512GB m.2 SSD Samsung SM961-NVMe via PCI-Express x4
     - SKU: APHDD-SM961-NVME-M2-512
